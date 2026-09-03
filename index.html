@@ -1,123 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#FBF3E4">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Table for Two — Food Matching</title>
-  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
-  <script src="https://unpkg.com/lucide-react@0.468.0/dist/umd/lucide-react.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; touch-action: manipulation; }
-    html, body, #root { width: 100%; height: 100%; }
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-    const { Heart, X, Share2, ArrowLeft } = window.LucideReact;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FBF3E4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Table for Two</title>
 
-    // === DATA ===
-    const CATEGORY_META = {
-      Breakfast: { emoji: '🥣', varName: '--amber-500' },
-      Lunch: { emoji: '🥪', varName: '--mustard' },
-      Dinner: { emoji: '🍽️', varName: '--tomato' },
-      Desserts: { emoji: '🍰', varName: '--pink-500' },
-      Nammi: { emoji: '🍬', varName: '--plum' },
-    };
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 
-    const MEAL_DATA = {
-      Breakfast: [
-        { id: 'breakfast-01', name: 'Hafragrautur', emoji: '🥣', description: 'Warm Icelandic oatmeal porridge.' },
-        { id: 'breakfast-02', name: 'Cereal', emoji: '🥛', description: 'With milk, the quick start.' },
-        { id: 'breakfast-03', name: 'Toast', emoji: '🍞', description: 'Buttered or with jam.' },
-        { id: 'breakfast-04', name: 'Egg and Bacon', emoji: '🍳', description: 'Classic breakfast combo.' },
-        { id: 'breakfast-05', name: 'Omelette', emoji: '🍳', description: 'Your choice of fillings.' },
-        { id: 'breakfast-06', name: 'Pönnukökur', emoji: '🥞', description: 'Icelandic pancakes, thin and delicate.' },
-        { id: 'breakfast-07', name: 'Vöfflur', emoji: '🧇', description: 'Icelandic waffles.' },
-        { id: 'breakfast-08', name: 'Snúður', emoji: '🥐', description: 'Icelandic cinnamon pastry roll.' },
-      ],
-      Lunch: [
-        { id: 'lunch-01', name: 'Bæjarins Beztu Pylsur', emoji: '🌭', description: "Reykjavík's legendary hot dog stand — order it 'ein með öllu'." },
-        { id: 'lunch-02', name: 'Hlölla Bátar', emoji: '🥖', description: 'Footlong Icelandic sub sandwiches.' },
-        { id: 'lunch-03', name: 'Brauð & Co', emoji: '🥐', description: 'Cult-favorite bakery for pastries.' },
-        { id: 'lunch-04', name: 'Sómi Pepperoni Sub', emoji: '🥪', description: "The grocery-store sub everyone grabs." },
-        { id: 'lunch-05', name: 'Serrano Wrap', emoji: '🌯', description: 'Build-your-own Mexican-style burrito.' },
-        { id: 'lunch-06', name: 'Subway Footlong', emoji: '🥙', description: 'Pick your bread and toppings.' },
-        { id: 'lunch-07', name: 'Fresh Salad Bar', emoji: '🥗', description: 'Build-your-own salad.' },
-        { id: 'lunch-08', name: 'Noodle Station', emoji: '🍜', description: 'Steaming bowl of noodles.' },
-        { id: 'lunch-09', name: 'Skyr & Granola', emoji: '🥣', description: 'Quick, protein-packed Icelandic.' },
-        { id: 'lunch-10', name: 'Dagsins Réttur', emoji: '🍽️', description: "Today's cafeteria lunch special." },
-      ],
-      Dinner: [
-        { id: 'dinner-01', name: 'Kjötsúpa', emoji: '🍲', description: 'Hearty lamb and vegetable soup.' },
-        { id: 'dinner-02', name: 'Lamb Steak', emoji: '🥩', description: 'Grilled Icelandic lamb.' },
-        { id: 'dinner-03', name: 'Pizza', emoji: '🍕', description: "Domino's, Pizzan, or homemade." },
-        { id: 'dinner-04', name: 'Lasagna', emoji: '🍝', description: 'Layers of pasta and sauce.' },
-        { id: 'dinner-05', name: 'Hot Dogs', emoji: '🌭', description: 'Quick dinner from the stand.' },
-        { id: 'dinner-06', name: 'Burgers', emoji: '🍔', description: "Tommi's, Metro, or homemade." },
-        { id: 'dinner-07', name: 'Pasta', emoji: '🍝', description: 'Spaghetti, penne, or your favorite.' },
-        { id: 'dinner-08', name: 'Chicken', emoji: '🍗', description: 'Roasted, fried, or grilled.' },
-        { id: 'dinner-09', name: 'Burritos', emoji: '🌯', description: 'Serrano or homemade.' },
-        { id: 'dinner-10', name: 'Meatballs', emoji: '🍖', description: 'With mashed potatoes and gravy.' },
-      ],
-      Desserts: [
-        { id: 'dessert-01', name: 'Hjónabandssæla', emoji: '🍫', description: 'Licorice and chocolate layered candy.' },
-        { id: 'dessert-02', name: 'Chocolate Cake', emoji: '🍰', description: 'Rich and decadent.' },
-        { id: 'dessert-03', name: 'Chocolate Brownie', emoji: '🍫', description: 'Fudgy and satisfying.' },
-        { id: 'dessert-04', name: 'Ice Cream', emoji: '🍦', description: "Valdís or your favorite shop." },
-        { id: 'dessert-05', name: 'Chocolate Mousse', emoji: '🥄', description: 'Light and creamy.' },
-        { id: 'dessert-06', name: 'Cheesecake', emoji: '🍰', description: 'Smooth and indulgent.' },
-        { id: 'dessert-07', name: 'Carrot Cake', emoji: '🥕', description: 'With cream cheese frosting.' },
-        { id: 'dessert-08', name: 'Cream Cake', emoji: '🍰', description: 'Layers of cream and cake.' },
-        { id: 'dessert-09', name: 'You 😉', emoji: '😉', description: 'The best dessert of all.' },
-      ],
-      Nammi: [
-        { id: 'nammi-01', name: 'Hagkaup NammiBar', emoji: '🍬', description: 'Pick-and-mix candy by weight.' },
-        { id: 'nammi-02', name: 'Ice Cream', emoji: '🍦', description: 'Any flavor, anytime.' },
-        { id: 'nammi-03', name: 'Popp', emoji: '🍿', description: 'Icelandic popcorn snack.' },
-        { id: 'nammi-04', name: 'Snakk', emoji: '🥨', description: 'Salty snack mix.' },
-        { id: 'nammi-05', name: 'Súkkulaði', emoji: '🍫', description: 'Icelandic chocolate bars.' },
-        { id: 'nammi-06', name: 'Súrt Nammi', emoji: '🍬', description: 'Sour candy.' },
-      ],
-    };
-
-    function allMeals() {
-      return [...MEAL_DATA.Breakfast, ...MEAL_DATA.Lunch, ...MEAL_DATA.Dinner, ...MEAL_DATA.Desserts, ...MEAL_DATA.Nammi];
-    }
-
-    function getStableShuffledDeck(category) {
-      const today = new Date().toISOString().split('T')[0];
-      const seed = today.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-      const meals = [...MEAL_DATA[category]];
-      let rng = seed;
-      for (let i = meals.length - 1; i > 0; i--) {
-        rng = (rng * 9301 + 49297) % 233280;
-        const j = Math.floor((rng / 233280) * (i + 1));
-        [meals[i], meals[j]] = [meals[j], meals[i]];
-      }
-      return meals;
-    }
-
-    function generateCode() {
-      const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      return Array.from({ length: 5 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
-    }
-
-
-    // === FIREBASE ===
-    // Replace these values with the Firebase Web App config from:
-    // Firebase Console -> Project settings -> Your apps -> Web app.
-    const FIREBASE_CONFIG = {
+<!-- Firebase (classic/compat scripts — load synchronously, in order, before the app) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+  // ====================================================================
+  // PASTE YOUR FIREBASE CONFIG BELOW. Get it from:
+  // console.firebase.google.com -> your project -> Project settings ->
+  // scroll to "Your apps" -> Web app -> "SDK setup and configuration"
+  // These values are NOT secret — they're meant to be public in web apps.
+  // Security comes from your Firestore Rules, not from hiding this.
+  // ====================================================================
+  const FIREBASE_CONFIG = {
       apiKey: AIzaSyDtqo-8BvuX5xuen0pfBeY2BvwrkTyJrAE,
       authDomain: table-for-two-2b51e.firebaseapp.com,
       projectId: table-for-two-2b51e,
@@ -126,546 +32,759 @@
       appId: 1:789552242375:web:ef90d84fa4132f5b3768e2
     };
 
-    let db = null;
-    let auth = null;
-    let firebaseReady = false;
-    let currentUid = null;
+  window.__fbReady = false;
+  try {
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('PASTE_') !== 0) {
+      firebase.initializeApp(firebaseConfig);
+      window.fbDb = firebase.firestore();
+      window.__fbReady = true;
+    }
+  } catch (e) {
+    console.error('Firebase failed to initialize:', e);
+  }
+</script>
 
-    async function initFirebase() {
-      if (!window.firebase) throw new Error('Firebase SDK did not load.');
-      if (FIREBASE_CONFIG.apiKey.startsWith('YOUR_')) {
-        throw new Error('Firebase is not configured yet. Add your Firebase Web App config to index.html.');
+<script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body, #root { width: 100%; min-height: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ==================== ERROR BOUNDARY ====================
+// If anything crashes, show the actual error instead of a blank page.
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error, info) {
+    console.error('App crashed:', error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, fontFamily: 'monospace', background: '#FBF3E4', color: '#2B241D', minHeight: '100vh' }}>
+          <h2 style={{ marginBottom: 12 }}>Something broke 😬</h2>
+          <p style={{ marginBottom: 12, fontSize: 14 }}>Send this to Claude so it can fix it:</p>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, background: '#FFFDF9', padding: 12, borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)' }}>
+            {String((this.state.error && this.state.error.stack) || this.state.error)}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ==================== DATA ====================
+const CATEGORY_META = {
+  Breakfast: { emoji: '🥣', varName: '--amber-500' },
+  Lunch: { emoji: '🥪', varName: '--mustard' },
+  Dinner: { emoji: '🍽️', varName: '--tomato' },
+  Desserts: { emoji: '🍰', varName: '--pink-500' },
+  Nammi: { emoji: '🍬', varName: '--plum' },
+};
+
+const MEAL_DATA = {
+  Breakfast: [
+    { id: 'breakfast-01', name: 'Hafragrautur', emoji: '🥣', description: 'Warm Icelandic oatmeal porridge.' },
+    { id: 'breakfast-02', name: 'Cereal', emoji: '🥛', description: 'With milk, the quick start.' },
+    { id: 'breakfast-03', name: 'Toast', emoji: '🍞', description: 'Buttered or with jam.' },
+    { id: 'breakfast-04', name: 'Egg and Bacon', emoji: '🍳', description: 'Classic breakfast combo.' },
+    { id: 'breakfast-05', name: 'Omelette', emoji: '🍳', description: 'Your choice of fillings.' },
+    { id: 'breakfast-06', name: 'Pönnukökur', emoji: '🥞', description: 'Icelandic pancakes, thin and delicate.' },
+    { id: 'breakfast-07', name: 'Vöfflur', emoji: '🧇', description: 'Icelandic waffles.' },
+    { id: 'breakfast-08', name: 'Snúður', emoji: '🥐', description: 'Icelandic cinnamon pastry roll.' },
+  ],
+  Lunch: [
+    { id: 'lunch-01', name: 'Bæjarins Beztu Pylsur', emoji: '🌭', description: "Reykjavík's legendary hot dog stand — order it 'ein með öllu'." },
+    { id: 'lunch-02', name: 'Hlölla Bátar', emoji: '🥖', description: 'Footlong Icelandic sub sandwiches.' },
+    { id: 'lunch-03', name: 'Brauð & Co', emoji: '🥐', description: 'Cult-favorite bakery for pastries.' },
+    { id: 'lunch-04', name: 'Sómi Pepperoni Sub', emoji: '🥪', description: 'The grocery-store sub everyone grabs.' },
+    { id: 'lunch-05', name: 'Serrano Wrap', emoji: '🌯', description: 'Build-your-own Mexican-style burrito.' },
+    { id: 'lunch-06', name: 'Subway Footlong', emoji: '🥙', description: 'Pick your bread and toppings.' },
+    { id: 'lunch-07', name: 'Fresh Salad Bar', emoji: '🥗', description: 'Build-your-own salad.' },
+    { id: 'lunch-08', name: 'Noodle Station', emoji: '🍜', description: 'Steaming bowl of noodles.' },
+    { id: 'lunch-09', name: 'Skyr & Granola', emoji: '🥣', description: 'Quick, protein-packed Icelandic.' },
+    { id: 'lunch-10', name: 'Dagsins Réttur', emoji: '🍽️', description: "Today's cafeteria lunch special." },
+  ],
+  Dinner: [
+    { id: 'dinner-01', name: 'Kjötsúpa', emoji: '🍲', description: 'Hearty lamb and vegetable soup.' },
+    { id: 'dinner-02', name: 'Lamb Steak', emoji: '🥩', description: 'Grilled Icelandic lamb.' },
+    { id: 'dinner-03', name: 'Pizza', emoji: '🍕', description: "Domino's, Pizzan, or homemade." },
+    { id: 'dinner-04', name: 'Lasagna', emoji: '🍝', description: 'Layers of pasta and sauce.' },
+    { id: 'dinner-05', name: 'Hot Dogs', emoji: '🌭', description: 'Quick dinner from the stand.' },
+    { id: 'dinner-06', name: 'Burgers', emoji: '🍔', description: "Tommi's, Metro, or homemade." },
+    { id: 'dinner-07', name: 'Pasta', emoji: '🍝', description: 'Spaghetti, penne, or your favorite.' },
+    { id: 'dinner-08', name: 'Chicken', emoji: '🍗', description: 'Roasted, fried, or grilled.' },
+    { id: 'dinner-09', name: 'Burritos', emoji: '🌯', description: 'Serrano or homemade.' },
+    { id: 'dinner-10', name: 'Meatballs', emoji: '🍖', description: 'With mashed potatoes and gravy.' },
+  ],
+  Desserts: [
+    { id: 'dessert-01', name: 'Hjónabandssæla', emoji: '🍫', description: 'Licorice and chocolate layered candy.' },
+    { id: 'dessert-02', name: 'Chocolate Cake', emoji: '🍰', description: 'Rich and decadent.' },
+    { id: 'dessert-03', name: 'Chocolate Brownie', emoji: '🍫', description: 'Fudgy and satisfying.' },
+    { id: 'dessert-04', name: 'Ice Cream', emoji: '🍦', description: 'Valdís or your favorite shop.' },
+    { id: 'dessert-05', name: 'Chocolate Mousse', emoji: '🥄', description: 'Light and creamy.' },
+    { id: 'dessert-06', name: 'Cheesecake', emoji: '🍰', description: 'Smooth and indulgent.' },
+    { id: 'dessert-07', name: 'Carrot Cake', emoji: '🥕', description: 'With cream cheese frosting.' },
+    { id: 'dessert-08', name: 'Cream Cake', emoji: '🍰', description: 'Layers of cream and cake.' },
+    { id: 'dessert-09', name: 'You 😊', emoji: '❤️', description: 'The best dessert of all.' },
+  ],
+  Nammi: [
+    { id: 'nammi-01', name: 'Hagkaup NammiBar', emoji: '🍬', description: 'Pick-and-mix candy by weight.' },
+    { id: 'nammi-02', name: 'Ice Cream', emoji: '🍦', description: 'Any flavor, anytime.' },
+    { id: 'nammi-03', name: 'Popp', emoji: '🍿', description: 'Icelandic popcorn snack.' },
+    { id: 'nammi-04', name: 'Snakk', emoji: '🥨', description: 'Salty snack mix.' },
+    { id: 'nammi-05', name: 'Súkkulaði', emoji: '🍫', description: 'Icelandic chocolate bars.' },
+    { id: 'nammi-06', name: 'Súrt Nammi', emoji: '🍬', description: 'Sour candy.' },
+  ],
+};
+
+function allMeals() {
+  return [...MEAL_DATA.Breakfast, ...MEAL_DATA.Lunch, ...MEAL_DATA.Dinner, ...MEAL_DATA.Desserts, ...MEAL_DATA.Nammi];
+}
+
+function getStableShuffledDeck(category) {
+  const today = new Date().toISOString().split('T')[0];
+  const seed = today.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const meals = [...MEAL_DATA[category]];
+  let rng = seed;
+  for (let i = meals.length - 1; i > 0; i--) {
+    rng = (rng * 9301 + 49297) % 233280;
+    const j = Math.floor((rng / 233280) * (i + 1));
+    [meals[i], meals[j]] = [meals[j], meals[i]];
+  }
+  return meals;
+}
+
+function generateCode() {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 5; i++) code += letters[Math.floor(Math.random() * letters.length)];
+  return code;
+}
+
+// ==================== STYLES ====================
+function GlobalStyles() {
+  return (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap');
+      .tft-root {
+        --paper: #FBF3E4;
+        --card: #FFFDF9;
+        --ink: #2B241D;
+        --ink-soft: #6B5D52;
+        --tomato: #C1442D;
+        --mustard: #D9A441;
+        --plum: #8B5A83;
+        --amber-500: #D97706;
+        --pink-500: #EC4899;
+        font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: linear-gradient(135deg, #FBF3E4 0%, #F5E6D3 50%, #EDD5C1 100%);
+        background-attachment: fixed;
+        color: var(--ink);
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
       }
-      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-      db = firebase.firestore();
-      auth = firebase.auth();
-
-      if (!auth.currentUser) {
-        await auth.signInAnonymously();
+      .tft-root::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: radial-gradient(circle at 20% 30%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 70%, rgba(193, 68, 45, 0.08) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: -1;
       }
-      currentUid = auth.currentUser && auth.currentUser.uid;
-      if (!currentUid) throw new Error('Could not create an anonymous Firebase session.');
-      firebaseReady = true;
-    }
+      .tft-display { font-family: 'Fraunces', Georgia, serif; }
+      .tft-perforation {
+        height: 2px;
+        background-image: linear-gradient(to right, var(--ink) 50%, transparent 0%);
+        background-size: 12px 2px;
+        background-repeat: repeat-x;
+        opacity: 0.22;
+      }
+      .tft-card-face {
+        background: var(--card);
+        border-radius: 18px;
+        border: 1px solid rgba(43,36,29,0.10);
+        box-shadow: 6px 6px 0 rgba(43,36,29,0.16);
+      }
+      .tft-btn { border-radius: 999px; font-family: 'Work Sans', sans-serif; font-weight: 600; border: none; cursor: pointer; }
+      .tft-btn:active { transform: scale(0.96); }
+      .tft-btn-primary { background: var(--tomato); color: #FFFDF9; }
+      .tft-btn-outline { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
+      .tft-btn-ink { background: var(--ink); color: #FBF3E4; }
+      .tft-chip { display: inline-flex; align-items: center; gap: 6px; color: white; border-radius: 999px; font-size: 0.78rem; font-weight: 600; padding: 4px 12px; white-space: nowrap; }
+      .tft-fade-in { animation: tftFadeIn 0.3s ease; }
+      @keyframes tftFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+      .tft-input { font-family: 'Work Sans', monospace; letter-spacing: 0.3em; text-align: center; border: 2px solid rgba(43,36,29,0.15); background: var(--card); border-radius: 12px; color: var(--ink); }
+      .tft-input:focus { outline: none; border-color: var(--tomato); }
+      .tft-round-btn { width: 60px; height: 60px; border-radius: 999px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+      .tft-round-btn:active { transform: scale(0.92); }
+    `}</style>
+  );
+}
 
-    function normalizeTicket(data) {
-      return {
-        code: data.code,
-        category: data.category,
-        hostSwipes: data.hostSwipes || {},
-        guestSwipes: data.guestSwipes || {},
-        joined: !!data.joined,
-        hostUid: data.hostUid || null,
-        guestUid: data.guestUid || null
-      };
-    }
+// ==================== SHARED PIECES ====================
+function CategoryChip({ category }) {
+  const meta = CATEGORY_META[category];
+  return (
+    <span className="tft-chip" style={{ background: `var(${meta.varName})` }}>
+      <span>{meta.emoji}</span>
+      <span>{category}</span>
+    </span>
+  );
+}
 
-    // === COMPONENTS ===
-    function GlobalStyles() {
-      return (
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap');
-          
-          .tft-root {
-            --paper: #FBF3E4;
-            --card: #FFFDF9;
-            --ink: #2B241D;
-            --ink-soft: #6B5D52;
-            --tomato: #C1442D;
-            --mustard: #D9A441;
-            --plum: #8B5A83;
-            --amber-500: #D97706;
-            --pink-500: #EC4899;
-            font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #FBF3E4 0%, #F5E6D3 50%, #EDD5C1 100%);
-            background-attachment: fixed;
-            color: var(--ink);
-            min-height: 100vh;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-          }
-          
-          .tft-root::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 20% 30%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 70%, rgba(193, 68, 45, 0.08) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: -1;
-          }
-          
-          .tft-display { font-family: 'Fraunces', Georgia, serif; }
-          .tft-btn { border-radius: 999px; font-weight: 600; border: none; cursor: pointer; }
-          .tft-btn:active { transform: scale(0.96); }
-          .tft-btn-primary { background: var(--tomato); color: #FFFDF9; }
-          .tft-btn-outline { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
-          .tft-btn-ink { background: var(--ink); color: #FBF3E4; }
-        `}</style>
-      );
-    }
+function MealCard({ meal }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-6 py-6 select-none">
+      <div className="tft-perforation w-full mb-5" />
+      <div className="mb-2"><CategoryChip category={meal.category} /></div>
+      <div style={{ fontSize: '4.5rem', lineHeight: 1 }} className="my-4">{meal.emoji}</div>
+      <h2 className="tft-display text-2xl font-semibold text-center mb-2" style={{ color: 'var(--ink)' }}>{meal.name}</h2>
+      <p className="text-center text-sm" style={{ color: 'var(--ink-soft)', maxWidth: '30ch' }}>{meal.description}</p>
+    </div>
+  );
+}
 
-    function WelcomeScreen({ onStart, onJoin, onSolo }) {
-      return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🍽️</div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '1rem' }}>Table for Two</h1>
-          <p style={{ color: 'var(--ink-soft)', maxWidth: '32ch', marginBottom: '2rem' }}>Swipe through meals together. Whatever you both order becomes dinner.</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '20rem', width: '100%' }}>
-            <button className="tft-btn tft-btn-primary" style={{ padding: '0.875rem', fontSize: '1rem' }} onClick={onStart}>Start an Order</button>
-            <button className="tft-btn tft-btn-outline" style={{ padding: '0.875rem', fontSize: '1rem' }} onClick={onJoin}>Join an Order</button>
+function WelcomeScreen({ onStart, onJoin, onSolo }) {
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 px-8 py-10 text-center">
+      <p className="tft-display text-5xl mb-4">🍽️</p>
+      <h1 className="tft-display text-4xl font-semibold mb-3">Table for Two</h1>
+      <p className="text-base mb-8" style={{ color: 'var(--ink-soft)', maxWidth: '32ch' }}>Swipe through meals together. Whatever you both order becomes dinner.</p>
+      <div className="tft-perforation w-40 mb-8" />
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        <button className="tft-btn tft-btn-primary py-3.5 text-base" onClick={onStart}>Start an Order</button>
+        <button className="tft-btn tft-btn-outline py-3.5 text-base" onClick={onJoin}>Join an Order</button>
+      </div>
+      <button className="text-sm underline mt-6" style={{ color: 'var(--ink-soft)', background: 'none', border: 'none' }} onClick={onSolo}>
+        Or decide solo — Table for One
+      </button>
+      {!window.__fbReady && (
+        <p className="text-xs mt-8" style={{ color: 'var(--ink-soft)', maxWidth: '30ch' }}>
+          ⚙️ Multiplayer needs Firebase configured in index.html. Solo mode works right now either way.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CreateScreen({ onBack, onConfirm, confirmLabel, connecting, error }) {
+  const [selected, setSelected] = useState('Dinner');
+  return (
+    <div className="flex flex-col flex-1 px-6 py-6">
+      <button className="flex items-center gap-1 text-sm mb-6" style={{ color: 'var(--ink-soft)', background: 'none', border: 'none' }} onClick={onBack}>
+        <span aria-hidden="true">←</span> Back
+      </button>
+      <h2 className="tft-display text-2xl font-semibold mb-6 text-center">What's on the menu?</h2>
+      <div className="flex flex-col gap-3 mb-auto">
+        {Object.keys(CATEGORY_META).map((cat) => {
+          const meta = CATEGORY_META[cat];
+          const isSelected = selected === cat;
+          return (
+            <button
+              key={cat}
+              onClick={() => setSelected(cat)}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl text-left"
+              style={{
+                border: `2px solid ${isSelected ? `var(${meta.varName})` : 'rgba(43,36,29,0.15)'}`,
+                background: isSelected ? `var(${meta.varName})` : 'var(--card)',
+                color: isSelected ? '#FFFDF9' : 'var(--ink)',
+              }}
+            >
+              <span style={{ fontSize: '1.5rem' }}>{meta.emoji}</span>
+              <span className="font-medium">{cat}</span>
+            </button>
+          );
+        })}
+      </div>
+      {error ? <p className="text-sm text-center mb-3" style={{ color: 'var(--tomato)' }}>{error}</p> : null}
+      <button className="tft-btn tft-btn-primary py-3.5 text-base mt-2" onClick={() => onConfirm(selected)} disabled={connecting}>
+        {connecting ? 'Opening…' : confirmLabel}
+      </button>
+    </div>
+  );
+}
+
+function JoinScreen({ onBack, onJoin, error, connecting }) {
+  const [value, setValue] = useState('');
+  return (
+    <div className="flex flex-col flex-1 px-6 py-6">
+      <button className="flex items-center gap-1 text-sm mb-6" style={{ color: 'var(--ink-soft)', background: 'none', border: 'none' }} onClick={onBack}>
+        <span aria-hidden="true">←</span> Back
+      </button>
+      <h2 className="tft-display text-2xl font-semibold mb-6 text-center">Enter the ticket code</h2>
+      <input
+        className="tft-input text-2xl font-semibold py-4 px-4 mb-3"
+        style={{ fontSize: '1.75rem' }}
+        maxLength={5}
+        placeholder="ABCDE"
+        value={value}
+        onChange={(e) => setValue(e.target.value.toUpperCase())}
+        autoCapitalize="characters"
+        autoCorrect="off"
+      />
+      {error ? <p className="text-sm text-center mb-3" style={{ color: 'var(--tomato)' }}>{error}</p> : null}
+      <div className="flex-1" />
+      <button className="tft-btn tft-btn-primary py-3.5 text-base" onClick={() => onJoin(value)} disabled={!value.trim() || connecting}>
+        {connecting ? 'Joining…' : 'Join Order'}
+      </button>
+    </div>
+  );
+}
+
+function WaitingScreen({ code, onLeave }) {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const text = `Join my food order! Ticket code: ${code}`;
+    try {
+      if (navigator.share) { await navigator.share({ text }); return; }
+    } catch (e) {}
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {}
+  };
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 px-8 py-10 text-center">
+      <p className="text-sm mb-2" style={{ color: 'var(--ink-soft)' }}>Your ticket</p>
+      <div className="tft-card-face px-8 py-5 mb-6">
+        <p className="tft-display text-4xl font-semibold" style={{ letterSpacing: '0.35em' }}>{code}</p>
+      </div>
+      <button className="tft-btn tft-btn-outline px-5 py-2.5 text-sm mb-8 flex items-center gap-2" onClick={share}>
+        <span aria-hidden="true">📤</span> {copied ? 'Copied!' : 'Share ticket'}
+      </button>
+      <div className="flex flex-col items-center gap-3 mb-10">
+        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--ink-soft)', borderTopColor: 'transparent' }} />
+        <p className="text-sm" style={{ color: 'var(--ink-soft)' }}>Waiting for them to join the table…</p>
+      </div>
+      <button className="text-sm underline" style={{ color: 'var(--ink-soft)', background: 'none', border: 'none' }} onClick={onLeave}>Cancel</button>
+    </div>
+  );
+}
+
+function MatchesSheet({ matches, mode, onClose, onSpin }) {
+  const isSolo = mode === 'solo';
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(43,36,29,0.45)' }} onClick={onClose}>
+      <div className="tft-fade-in w-full max-w-md rounded-t-3xl px-6 pt-6 pb-8 overflow-y-auto" style={{ background: 'var(--paper)', maxHeight: '75vh' }} onClick={(e) => e.stopPropagation()}>
+        <div className="w-10 h-1.5 rounded-full mx-auto mb-5" style={{ background: 'rgba(43,36,29,0.2)' }} />
+        <h2 className="tft-display text-2xl font-semibold mb-5">{isSolo ? 'Your Picks' : 'Your Orders'}</h2>
+        {matches.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-3xl mb-3">🤷</p>
+            <p className="font-medium mb-1">{isSolo ? 'No picks yet' : 'No orders yet'}</p>
+            <p className="text-sm" style={{ color: 'var(--ink-soft)' }}>
+              {isSolo ? 'Keep swiping — anything you order it on shows up here.' : 'Keep swiping — matches show up here the moment you both order the same thing.'}
+            </p>
           </div>
-          <button style={{ marginTop: '1.5rem', fontSize: '0.875rem', textDecoration: 'underline', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }} onClick={onSolo}>Or decide solo — Table for One</button>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {matches.map((meal) => (
+              <div key={meal.id} className="flex items-center gap-3 tft-card-face px-4 py-3">
+                <span style={{ fontSize: '2rem' }}>{meal.emoji}</span>
+                <div><p className="font-semibold">{meal.name}</p><p className="text-xs" style={{ color: 'var(--ink-soft)' }}>{meal.description}</p></div>
+              </div>
+            ))}
+          </div>
+        )}
+        {matches.length > 0 ? (
+          <button className="tft-btn tft-btn-primary py-3 text-base w-full mt-6" onClick={onSpin}>🎡 Spin the Wheel</button>
+        ) : null}
+        <button className="tft-btn tft-btn-ink py-3 text-base w-full mt-3" onClick={onClose}>Done</button>
+      </div>
+    </div>
+  );
+}
+
+function CelebrationOverlay({ meal, onDismiss, onSpin }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-8" style={{ background: 'rgba(43,36,29,0.75)' }}>
+      <div className="tft-fade-in text-center">
+        <p className="tft-display text-3xl font-semibold mb-6" style={{ color: '#FFFDF9' }}>Order confirmed!</p>
+        <p style={{ fontSize: '4.5rem' }} className="mb-4">{meal.emoji}</p>
+        <p className="tft-display text-2xl font-semibold mb-8" style={{ color: '#FFFDF9' }}>{meal.name}</p>
+        <div className="flex gap-3 justify-center">
+          <button className="tft-btn tft-btn-outline py-3 px-6 text-base" style={{ borderColor: '#FBF3E4', color: '#FBF3E4' }} onClick={onDismiss}>Keep Swiping</button>
+          <button className="tft-btn tft-btn-primary py-3 px-6 text-base" onClick={onSpin}>🎡 Spin the Wheel</button>
         </div>
-      );
-    }
+      </div>
+    </div>
+  );
+}
 
-    function CreateScreen({ onBack, onConfirm, confirmLabel }) {
-      const [selected, setSelected] = useState('Dinner');
-      return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
-          <button style={{ marginBottom: '1.5rem', background: 'none', border: 'none', fontSize: '0.875rem', color: 'var(--ink-soft)', cursor: 'pointer' }} onClick={onBack}>← Back</button>
-          <h2 style={{ fontFamily: 'Fraunces', fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem', textAlign: 'center' }}>What's on the menu?</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: 'auto' }}>
-            {Object.keys(CATEGORY_META).map((cat) => {
-              const meta = CATEGORY_META[cat];
-              const isSelected = selected === cat;
-              return (
-                <button key={cat} onClick={() => setSelected(cat)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '1rem', border: `2px solid ${isSelected ? `var(${meta.varName})` : 'rgba(43,36,29,0.15)'}`, background: isSelected ? `var(${meta.varName})` : 'var(--card)', color: isSelected ? '#FFFDF9' : 'var(--ink)', fontSize: '1rem', cursor: 'pointer' }}>
-                  <span style={{ fontSize: '1.5rem' }}>{meta.emoji}</span>
-                  <span style={{ fontWeight: '500' }}>{cat}</span>
-                </button>
-              );
-            })}
-          </div>
-          <button className="tft-btn tft-btn-primary" style={{ padding: '0.875rem', fontSize: '1rem', marginTop: '0.5rem' }} onClick={() => onConfirm(selected)}>{confirmLabel}</button>
-        </div>
-      );
-    }
+function WheelScreen({ matches, onClose }) {
+  const [rotation, setRotation] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [winner, setWinner] = useState(null);
+  const size = 280;
+  const colors = ['var(--tomato)', 'var(--mustard)', 'var(--plum)', '#4A4238'];
+  const n = Math.max(matches.length, 1);
+  const idxs = Array.from({ length: n }, (_, i) => i % colors.length);
+  if (n > colors.length && idxs[n - 1] === idxs[0]) idxs[n - 1] = (idxs[n - 1] + 1) % colors.length;
+  const segAngle = 360 / n;
+  const gradientStops = idxs.map((ci, i) => `${colors[ci]} ${i * segAngle}deg ${(i + 1) * segAngle}deg`).join(', ');
 
-    function JoinScreen({ onBack, onJoin, error }) {
-      const [value, setValue] = useState('');
-      return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
-          <button style={{ marginBottom: '1.5rem', background: 'none', border: 'none', fontSize: '0.875rem', color: 'var(--ink-soft)', cursor: 'pointer' }} onClick={onBack}>← Back</button>
-          <h2 style={{ fontFamily: 'Fraunces', fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem', textAlign: 'center' }}>Enter the ticket code</h2>
-          <input style={{ fontSize: '1.75rem', fontWeight: '600', fontFamily: 'monospace', textAlign: 'center', border: '2px solid rgba(43,36,29,0.15)', background: 'var(--card)', borderRadius: '0.75rem', color: 'var(--ink)', padding: '1rem', marginBottom: '0.75rem', maxWidth: '100%', textTransform: 'uppercase' }} maxLength={5} placeholder="ABCDE" value={value} onChange={(e) => setValue(e.target.value.toUpperCase())} autoCapitalize="characters" autoCorrect="off" />
-          {error && <p style={{ fontSize: '0.875rem', textAlign: 'center', marginBottom: '0.75rem', color: 'var(--tomato)' }}>{error}</p>}
-          <div style={{ flex: 1 }} />
-          <button className="tft-btn tft-btn-primary" style={{ padding: '0.875rem', fontSize: '1rem' }} onClick={() => onJoin(value)} disabled={!value.trim()}>Join Order</button>
-        </div>
-      );
-    }
+  const spin = () => {
+    if (spinning || matches.length === 0) return;
+    setWinner(null);
+    setSpinning(true);
+    const winIndex = Math.floor(Math.random() * matches.length);
+    const sliceCenter = winIndex * segAngle + segAngle / 2;
+    const jitter = (Math.random() - 0.5) * segAngle * 0.5;
+    const extraSpins = 5 + Math.floor(Math.random() * 3);
+    const targetMod = ((360 - sliceCenter - jitter) % 360 + 360) % 360;
+    setRotation((prev) => {
+      const prevMod = ((prev % 360) + 360) % 360;
+      const delta = ((targetMod - prevMod) % 360 + 360) % 360;
+      return prev + delta + extraSpins * 360;
+    });
+    setTimeout(() => { setSpinning(false); setWinner(matches[winIndex]); }, 4200);
+  };
 
-    function WaitingScreen({ code, onLeave }) {
-      const [copied, setCopied] = useState(false);
-      const share = async () => {
-        const text = `Join my food order! Ticket code: ${code}`;
-        try {
-          if (navigator.share) await navigator.share({ text });
-          else {
-            await navigator.clipboard.writeText(text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          }
-        } catch (e) {}
-      };
-      return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', marginBottom: '0.5rem' }}>Your ticket</p>
-          <div style={{ background: 'var(--card)', border: '1px solid rgba(43,36,29,0.1)', borderRadius: '1rem', padding: '1.25rem 2rem', marginBottom: '1.5rem', boxShadow: '6px 6px 0 rgba(43,36,29,0.16)' }}>
-            <p style={{ fontFamily: 'Fraunces', fontSize: '3rem', fontWeight: '600', letterSpacing: '0.35em' }}>{code}</p>
-          </div>
-          <button className="tft-btn tft-btn-outline" style={{ padding: '0.625rem 1.25rem', fontSize: '0.875rem', marginBottom: '2rem' }} onClick={share}>{copied ? 'Copied!' : 'Share ticket'}</button>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
-            <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '2px solid var(--ink-soft)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
-            <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)' }}>Waiting for them to join…</p>
-          </div>
-          <button style={{ fontSize: '0.875rem', textDecoration: 'underline', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }} onClick={onLeave}>Cancel</button>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        </div>
-      );
-    }
-
-    function SwipeScreen({ mode, category, deck, setDeck, ownSwipes, setOwnSwipes, matches, onLeave }) {
-      const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
-      const [showMatches, setShowMatches] = useState(false);
-      const [celebration, setCelebration] = useState(null);
-      const draggingRef = useRef(false);
-      const startRef = useRef({ x: 0, y: 0 });
-      const celebratedRef = useRef(new Set());
-
-      useEffect(() => {
-        if (mode !== 'multiplayer') return;
-        const fresh = matches.find((m) => !celebratedRef.current.has(m.id));
-        if (fresh) {
-          celebratedRef.current.add(fresh.id);
-          setCelebration(fresh);
-        }
-      }, [matches, mode]);
-
-      const swipeCurrent = (liked) => {
-        const meal = deck[0];
-        if (!meal) return;
-        const updated = { ...ownSwipes, [meal.id]: liked };
-        setOwnSwipes(updated);
-        draggingRef.current = false;
-        setDragPos({ x: liked ? 650 : -650, y: 0 });
-        setTimeout(() => {
-          setDeck((d) => d.slice(1));
-          setDragPos({ x: 0, y: 0 });
-        }, 220);
-      };
-
-      const onPointerDown = (e) => {
-        draggingRef.current = true;
-        startRef.current = { x: e.clientX, y: e.clientY };
-      };
-      const onPointerMove = (e) => {
-        if (!draggingRef.current) return;
-        setDragPos({ x: e.clientX - startRef.current.x, y: e.clientY - startRef.current.y });
-      };
-      const onPointerUp = () => {
-        if (!draggingRef.current) return;
-        draggingRef.current = false;
-        if (dragPos.x > 110) swipeCurrent(true);
-        else if (dragPos.x < -110) swipeCurrent(false);
-        else setDragPos({ x: 0, y: 0 });
-      };
-
-      const meta = CATEGORY_META[category];
-      return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.25rem', color: 'var(--ink)' }}>
-            <button style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', background: 'none', border: 'none', cursor: 'pointer' }} onClick={onLeave}>Leave</button>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'white', borderRadius: '999px', fontSize: '0.78rem', fontWeight: '600', padding: '0.25rem 0.75rem', background: `var(${meta.varName})` }}><span>{meta.emoji}</span><span>{category}</span></div>
-            <button style={{ fontSize: '0.875rem', fontWeight: '600', padding: '0.375rem 0.75rem', borderRadius: '9999px', background: 'var(--ink)', color: 'var(--paper)', border: 'none', cursor: 'pointer' }} onClick={() => setShowMatches(true)}>{mode === 'solo' ? 'Picks' : 'Orders'} {matches.length > 0 ? `· ${matches.length}` : ''}</button>
-          </div>
-
-          {deck.length === 0 ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem' }}>
-              <p style={{ fontSize: '2rem', marginBottom: '1rem' }}>🎉</p>
-              <p style={{ fontFamily: 'Fraunces', fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>You've cleared the menu!</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)' }}>{mode === 'solo' ? 'Check your picks, or leave to start over.' : 'Check your orders, or leave to start a new ticket.'}</p>
-            </div>
-          ) : (
-            <>
-              <div style={{ position: 'relative', flex: 1, marginLeft: '1.5rem', marginRight: '1.5rem', marginBottom: '1rem', minHeight: 380 }}>
-                {deck.slice(0, 3).map((meal, idx) => (
-                  <div key={meal.id} style={{ position: 'absolute', inset: 0, background: 'var(--card)', borderRadius: '1.125rem', border: '1px solid rgba(43,36,29,0.10)', boxShadow: '6px 6px 0 rgba(43,36,29,0.16)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', zIndex: 10 - idx, transform: `translate(${idx === 0 ? dragPos.x : 0}px, ${idx === 0 ? dragPos.y : idx * 8}px) rotate(${idx === 0 ? dragPos.x / 18 : 0}deg) scale(${1 - idx * 0.04})`, transition: idx === 0 && draggingRef.current ? 'none' : 'transform 0.25s ease', touchAction: 'none', cursor: idx === 0 ? 'grab' : 'default', userSelect: 'none' }} onPointerDown={idx === 0 ? onPointerDown : undefined} onPointerMove={idx === 0 ? onPointerMove : undefined} onPointerUp={idx === 0 ? onPointerUp : undefined} onPointerCancel={idx === 0 ? onPointerUp : undefined}>
-                    <p style={{ fontSize: '4rem', lineHeight: 1, marginBottom: '1rem' }}>{meal.emoji}</p>
-                    <h2 style={{ fontFamily: 'Fraunces', fontSize: '1.5rem', fontWeight: '600', textAlign: 'center', marginBottom: '0.5rem' }}>{meal.name}</h2>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', textAlign: 'center', maxWidth: '30ch' }}>{meal.description}</p>
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8" style={{ background: 'rgba(43,36,29,0.92)' }}>
+      <button className="absolute top-6 right-6 text-sm" style={{ color: '#FBF3E4', background: 'none', border: 'none' }} onClick={onClose}>Close</button>
+      {matches.length === 0 ? (
+        <p className="text-center" style={{ color: '#FBF3E4' }}>Get at least one order matched before spinning.</p>
+      ) : (
+        <>
+          <p className="tft-display text-2xl font-semibold mb-8" style={{ color: '#FBF3E4' }}>Let the wheel decide</p>
+          <div style={{ position: 'relative', width: size, height: size }}>
+            <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderTop: '20px solid #FBF3E4', zIndex: 2 }} />
+            <div style={{ width: size, height: size, borderRadius: '50%', background: `conic-gradient(${gradientStops})`, transform: `rotate(${rotation}deg)`, transition: spinning ? 'transform 4.2s cubic-bezier(0.15,0.65,0.15,1)' : 'none', position: 'relative', border: '6px solid var(--card)' }}>
+              {matches.map((meal, i) => {
+                const center = i * segAngle + segAngle / 2;
+                return (
+                  <div key={meal.id} style={{ position: 'absolute', top: '50%', left: '50%', width: 0, height: 0, transform: `rotate(${center}deg) translate(0, -${size / 2 - 34}px)` }}>
+                    <span style={{ display: 'inline-block', fontSize: '1.8rem', transform: 'translate(-50%, -50%)' }}>{meal.emoji}</span>
                   </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2.5rem', paddingBottom: '2rem' }}>
-                <button style={{ width: '3.75rem', height: '3.75rem', borderRadius: '999px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--ink)' }} onClick={() => swipeCurrent(false)}><X color="#FBF3E4" size={26} /></button>
-                <button style={{ width: '3.75rem', height: '3.75rem', borderRadius: '999px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--tomato)' }} onClick={() => swipeCurrent(true)}><Heart color="#FFFDF9" size={26} fill="#FFFDF9" /></button>
-              </div>
-            </>
-          )}
-
-          {showMatches && (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(43,36,29,0.45)' }} onClick={() => setShowMatches(false)}>
-              <div style={{ background: 'var(--paper)', borderTopLeftRadius: '1.5rem', borderTopRightRadius: '1.5rem', padding: '1.5rem 1.5rem 2rem', maxHeight: '75vh', overflowY: 'auto', width: '100%', maxWidth: '28rem', animation: 'fadeIn 0.3s ease' }} onClick={(e) => e.stopPropagation()}>
-                <div style={{ width: '2.5rem', height: '0.375rem', borderRadius: '9999px', background: 'rgba(43,36,29,0.2)', margin: '0 auto 1.25rem' }} />
-                <h2 style={{ fontFamily: 'Fraunces', fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.25rem' }}>{mode === 'solo' ? 'Your Picks' : 'Your Orders'}</h2>
-                {matches.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                    <p style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🤷</p>
-                    <p style={{ fontWeight: '500', marginBottom: '0.25rem' }}>{mode === 'solo' ? 'No picks yet' : 'No orders yet'}</p>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)' }}>{mode === 'solo' ? 'Keep swiping — anything you order it on shows up here.' : 'Keep swiping — matches show up here the moment you both order the same thing.'}</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    {matches.map((meal) => (
-                      <div key={meal.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--card)', border: '1px solid rgba(43,36,29,0.1)', borderRadius: '1.125rem', padding: '0.75rem 1rem' }}>
-                        <span style={{ fontSize: '2rem' }}>{meal.emoji}</span>
-                        <div><p style={{ fontWeight: '600' }}>{meal.name}</p><p style={{ fontSize: '0.75rem', color: 'var(--ink-soft)' }}>{meal.description}</p></div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <button className="tft-btn tft-btn-ink" style={{ padding: '0.75rem', fontSize: '1rem', width: '100%' }} onClick={() => setShowMatches(false)}>Done</button>
-              </div>
-              <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                );
+              })}
             </div>
-          )}
-
-          {celebration && (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(43,36,29,0.75)', padding: '2rem' }}>
-              <div style={{ textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>
-                <p style={{ fontFamily: 'Fraunces', fontSize: '1.75rem', fontWeight: '600', marginBottom: '1.5rem', color: '#FFFDF9' }}>Order confirmed!</p>
-                <p style={{ fontSize: '4.5rem', marginBottom: '1rem' }}>{celebration.emoji}</p>
-                <p style={{ fontFamily: 'Fraunces', fontSize: '1.5rem', fontWeight: '600', marginBottom: '2rem', color: '#FFFDF9' }}>{celebration.name}</p>
-                <button className="tft-btn tft-btn-primary" style={{ padding: '0.75rem 2rem', fontSize: '1rem' }} onClick={() => setCelebration(null)}>Keep Swiping</button>
-              </div>
-              <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', width: 44, height: 44, marginLeft: -22, marginTop: -22, borderRadius: '50%', background: 'var(--ink)', border: '4px solid var(--card)' }} />
+          </div>
+          <button className="tft-btn tft-btn-primary py-3.5 px-10 text-base mt-10" onClick={spin} disabled={spinning}>{spinning ? 'Spinning…' : 'Spin the Wheel'}</button>
+        </>
+      )}
+      {winner ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-8" style={{ background: 'rgba(43,36,29,0.9)' }}>
+          <div className="tft-fade-in text-center">
+            <p className="tft-display text-3xl font-semibold mb-6" style={{ color: '#FFFDF9' }}>Final Order!</p>
+            <p style={{ fontSize: '4.5rem' }} className="mb-4">{winner.emoji}</p>
+            <p className="tft-display text-2xl font-semibold mb-2" style={{ color: '#FFFDF9' }}>{winner.name}</p>
+            <p className="text-sm mb-8" style={{ color: 'rgba(255,253,249,0.75)', maxWidth: '28ch' }}>{winner.description}</p>
+            <div className="flex gap-3 justify-center">
+              <button className="tft-btn tft-btn-outline py-3 px-6 text-base" style={{ borderColor: '#FBF3E4', color: '#FBF3E4' }} onClick={() => setWinner(null)}>Spin Again</button>
+              <button className="tft-btn tft-btn-primary py-3 px-6 text-base" onClick={onClose}>Done</button>
             </div>
-          )}
+          </div>
         </div>
-      );
-    }
+      ) : null}
+    </div>
+  );
+}
 
-    function TableForTwo() {
-      const [screen, setScreen] = useState('welcome');
-      const [mode, setMode] = useState('multiplayer');
-      const [category, setCategory] = useState('Dinner');
-      const [deck, setDeck] = useState([]);
-      const [ownSwipes, setOwnSwipes] = useState({});
-      const [partnerSwipes, setPartnerSwipes] = useState({});
-      const [ticketCode, setTicketCode] = useState('');
-      const [ticketRole, setTicketRole] = useState(null);
-      const [ticketError, setTicketError] = useState('');
-      const [firebaseError, setFirebaseError] = useState('');
-      const unsubscribeRef = useRef(null);
+function SwipeScreen({ mode, category, deck, setDeck, ownSwipes, setOwnSwipes, onPersistSwipe, matches, onLeave }) {
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const [showMatches, setShowMatches] = useState(false);
+  const [showWheel, setShowWheel] = useState(false);
+  const [celebration, setCelebration] = useState(null);
+  const draggingRef = useRef(false);
+  const startRef = useRef({ x: 0, y: 0 });
+  const celebratedRef = useRef(new Set());
 
-      useEffect(() => {
-        let cancelled = false;
-        (async () => {
-          try {
-            await initFirebase();
-            if (cancelled) return;
-          } catch (e) {
-            if (!cancelled) setFirebaseError(e.message);
-          }
-        })();
+  useEffect(() => {
+    if (mode !== 'multiplayer') return;
+    const fresh = matches.find((m) => !celebratedRef.current.has(m.id));
+    if (fresh) { celebratedRef.current.add(fresh.id); setCelebration(fresh); }
+  }, [matches, mode]);
 
-        return () => {
-          cancelled = true;
-          if (unsubscribeRef.current) unsubscribeRef.current();
-        };
-      }, []);
+  const swipeCurrent = (liked) => {
+    const meal = deck[0];
+    if (!meal) return;
+    const updated = { ...ownSwipes, [meal.id]: liked };
+    setOwnSwipes(updated);
+    onPersistSwipe(updated);
+    draggingRef.current = false;
+    setDragPos({ x: liked ? 650 : -650, y: 0 });
+    setTimeout(() => { setDeck((d) => d.slice(1)); setDragPos({ x: 0, y: 0 }); }, 220);
+  };
 
-      const matches = mode === 'solo'
-        ? allMeals().filter((m) => ownSwipes[m.id] === true)
-        : allMeals().filter((m) => ownSwipes[m.id] === true && partnerSwipes[m.id] === true);
+  const onPointerDown = (e) => { draggingRef.current = true; startRef.current = { x: e.clientX, y: e.clientY }; };
+  const onPointerMove = (e) => { if (!draggingRef.current) return; setDragPos({ x: e.clientX - startRef.current.x, y: e.clientY - startRef.current.y }); };
+  const onPointerUp = () => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    if (dragPos.x > 110) swipeCurrent(true);
+    else if (dragPos.x < -110) swipeCurrent(false);
+    else setDragPos({ x: 0, y: 0 });
+  };
 
-      const startRealtime = (code, role) => {
-        if (!db) return;
-        if (unsubscribeRef.current) unsubscribeRef.current();
-        unsubscribeRef.current = db.collection('tickets').doc(code).onSnapshot((snap) => {
-          if (!snap.exists) {
-            setTicketError('This ticket no longer exists.');
-            return;
-          }
-          const t = normalizeTicket(snap.data());
-          setCategory(t.category);
-          if (role === 'host') {
-            setOwnSwipes(t.hostSwipes);
-            setPartnerSwipes(t.guestSwipes);
-            if (t.joined && screen === 'waiting') {
-              const stableDeck = getStableShuffledDeck(t.category);
-              setDeck(stableDeck.map((m) => ({ ...m, category: t.category })));
-              setScreen('swipe');
-            }
-          } else {
-            setOwnSwipes(t.guestSwipes);
-            setPartnerSwipes(t.hostSwipes);
-          }
-        }, (err) => setTicketError(err.message));
-      };
+  return (
+    <div className="flex flex-col flex-1">
+      <div className="flex items-center justify-between px-5 py-4">
+        <button className="text-sm" style={{ color: 'var(--ink-soft)', background: 'none', border: 'none' }} onClick={onLeave}>Leave</button>
+        <CategoryChip category={category} />
+        <button className="text-sm font-semibold px-3 py-1.5 rounded-full" style={{ background: 'var(--ink)', color: 'var(--paper)', border: 'none' }} onClick={() => setShowMatches(true)}>
+          {mode === 'solo' ? 'Picks' : 'Orders'} {matches.length > 0 ? `· ${matches.length}` : ''}
+        </button>
+      </div>
 
-      const handleStartSolo = (selectedCategory) => {
-        setMode('solo');
-        setCategory(selectedCategory);
-        const stableDeck = getStableShuffledDeck(selectedCategory);
-        setDeck(stableDeck.map((m) => ({ ...m, category: selectedCategory })));
-        setOwnSwipes({});
-        setPartnerSwipes({});
-        setScreen('swipe');
-      };
-
-      const handleCreateTicket = async (selectedCategory) => {
-        setTicketError('');
-        if (!db || !currentUid) {
-          setTicketError('Firebase is still connecting. Please wait a moment and try again.');
-          return;
-        }
-        try {
-          let code = generateCode();
-          for (let i = 0; i < 10; i++) {
-            const ref = db.collection('tickets').doc(code);
-            const snap = await ref.get();
-            if (!snap.exists) break;
-            code = generateCode();
-          }
-          await db.collection('tickets').doc(code).set({
-            code,
-            category: selectedCategory,
-            hostSwipes: {},
-            guestSwipes: {},
-            joined: false,
-            hostUid: currentUid,
-            guestUid: null,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          setMode('multiplayer');
-          setCategory(selectedCategory);
-          setTicketCode(code);
-          setTicketRole('host');
-          setScreen('waiting');
-          startRealtime(code, 'host');
-        } catch (e) {
-          setTicketError(e.message || 'Could not create the ticket.');
-        }
-      };
-
-      const handleJoinTicket = async (rawCode) => {
-        setTicketError('');
-        if (!db || !currentUid) {
-          setTicketError('Firebase is still connecting. Please wait a moment and try again.');
-          return;
-        }
-        const code = rawCode.trim().toUpperCase();
-        if (code.length !== 5) {
-          setTicketError('Enter the 5-character ticket code.');
-          return;
-        }
-        try {
-          const ref = db.collection('tickets').doc(code);
-          let t;
-
-          await db.runTransaction(async (tx) => {
-            const snap = await tx.get(ref);
-            if (!snap.exists) throw new Error('Ticket not found. Check the code and try again.');
-            const current = normalizeTicket(snap.data());
-            if (current.joined || current.guestUid) {
-              throw new Error('That ticket already has two people.');
-            }
-            tx.update(ref, { joined: true, guestUid: currentUid });
-            t = current;
-          });
-
-          setMode('multiplayer');
-          setCategory(t.category);
-          setTicketCode(code);
-          setTicketRole('guest');
-          const stableDeck = getStableShuffledDeck(t.category);
-          setDeck(stableDeck.map((m) => ({ ...m, category: t.category })));
-          setOwnSwipes(t.guestSwipes);
-          setPartnerSwipes(t.hostSwipes);
-          setScreen('swipe');
-          startRealtime(code, 'guest');
-        } catch (e) {
-          setTicketError(e.message || 'Could not join the ticket.');
-        }
-      };
-
-      const saveSwipe = async (mealId, liked) => {
-        if (!db || !ticketCode || !ticketRole) return;
-        const field = ticketRole === 'host' ? 'hostSwipes' : 'guestSwipes';
-        try {
-          await db.collection('tickets').doc(ticketCode).set({
-            [field]: { ...ownSwipes, [mealId]: liked }
-          }, { merge: true });
-        } catch (e) {
-          setTicketError(e.message || 'Could not save your choice.');
-        }
-      };
-
-      const handleLeave = async () => {
-        if (unsubscribeRef.current) {
-          unsubscribeRef.current();
-          unsubscribeRef.current = null;
-        }
-        if (db && ticketCode && ticketRole === 'host') {
-          try {
-            await db.collection('tickets').doc(ticketCode).delete();
-          } catch (e) {}
-        } else if (db && ticketCode && ticketRole === 'guest' && currentUid) {
-          try {
-            await db.collection('tickets').doc(ticketCode).update({
-              joined: false,
-              guestUid: null,
-              guestSwipes: {}
-            });
-          } catch (e) {}
-        }
-        setScreen('welcome');
-        setMode('multiplayer');
-        setDeck([]);
-        setOwnSwipes({});
-        setPartnerSwipes({});
-        setTicketCode('');
-        setTicketRole(null);
-        setTicketError('');
-      };
-
-      const firebaseBanner = firebaseError && (
-        <div style={{
-          margin: '0.75rem 1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem',
-          background: '#fff1ed', border: '1px solid rgba(193,68,45,0.25)',
-          color: 'var(--tomato)', fontSize: '0.8rem', lineHeight: 1.4
-        }}>
-          {firebaseError}
+      {deck.length === 0 ? (
+        <div className="flex flex-col items-center justify-center flex-1 px-8 text-center">
+          <p className="text-4xl mb-4">🎉</p>
+          <p className="tft-display text-xl font-semibold mb-2">You've cleared the menu!</p>
+          <p className="text-sm" style={{ color: 'var(--ink-soft)' }}>
+            {mode === 'solo' ? 'Check your picks, or leave to start over.' : 'Check your orders, or leave to start a new ticket.'}
+          </p>
         </div>
-      );
-
-      return (
-        <div className="tft-root">
-          <GlobalStyles />
-          <div style={{ width: '100%', maxWidth: '28rem', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
-            {firebaseBanner}
-
-            {screen === 'welcome' &&
-              <WelcomeScreen
-                onStart={() => { setMode('multiplayer'); setScreen('create'); setTicketError(''); }}
-                onJoin={() => { setScreen('join'); setTicketError(''); }}
-                onSolo={() => { setMode('solo'); setScreen('create'); setTicketError(''); }}
-              />
-            }
-
-            {screen === 'create' &&
-              <>
-                <CreateScreen
-                  onBack={() => setScreen('welcome')}
-                  onConfirm={mode === 'solo' ? handleStartSolo : handleCreateTicket}
-                  confirmLabel={mode === 'solo' ? 'Start Swiping' : 'Create Ticket'}
-                />
-                {ticketError && <p style={{ padding: '0 1.5rem', color: 'var(--tomato)', textAlign: 'center', fontSize: '0.85rem' }}>{ticketError}</p>}
-              </>
-            }
-
-            {screen === 'waiting' &&
-              <WaitingScreen code={ticketCode} onLeave={handleLeave} />
-            }
-
-            {screen === 'join' &&
-              <JoinScreen onBack={() => setScreen('welcome')} onJoin={handleJoinTicket} error={ticketError} />
-            }
-
-            {screen === 'swipe' &&
-              <SwipeScreen
-                mode={mode}
-                category={category}
-                deck={deck}
-                setDeck={setDeck}
-                ownSwipes={ownSwipes}
-                setOwnSwipes={(next) => {
-                  setOwnSwipes(next);
-                  const previousIds = Object.keys(ownSwipes);
-                  const nextIds = Object.keys(next);
-                  const changedId = nextIds.find((id) => !previousIds.includes(id) || ownSwipes[id] !== next[id]);
-                  if (changedId) saveSwipe(changedId, next[changedId]);
+      ) : (
+        <>
+          <div className="relative flex-1 mx-5 mb-4" style={{ minHeight: 380 }}>
+            {deck.slice(0, 3).map((meal, idx) => (
+              <div
+                key={meal.id}
+                className={`absolute inset-0 tft-card-face ${idx === 0 ? '' : 'tft-fade-in'}`}
+                style={{
+                  zIndex: 10 - idx,
+                  transform: `translate(${idx === 0 ? dragPos.x : 0}px, ${idx === 0 ? dragPos.y : idx * 8}px) rotate(${idx === 0 ? dragPos.x / 18 : 0}deg) scale(${1 - idx * 0.04})`,
+                  transition: idx === 0 && draggingRef.current ? 'none' : 'transform 0.25s ease',
+                  touchAction: 'none',
+                  cursor: idx === 0 ? 'grab' : 'default',
                 }}
-                matches={matches}
-                onLeave={handleLeave}
-              />
-            }
+                onPointerDown={idx === 0 ? onPointerDown : undefined}
+                onPointerMove={idx === 0 ? onPointerMove : undefined}
+                onPointerUp={idx === 0 ? onPointerUp : undefined}
+                onPointerCancel={idx === 0 ? onPointerUp : undefined}
+              >
+                <MealCard meal={meal} />
+              </div>
+            ))}
           </div>
-        </div>
-      );
-    }
+          <div className="flex items-center justify-center gap-10 pb-8">
+            <button className="tft-round-btn" style={{ background: 'var(--ink)' }} onClick={() => swipeCurrent(false)} aria-label="Pass">
+              <span style={{ color: '#FBF3E4', fontSize: 26, fontWeight: 700, lineHeight: 1 }}>✕</span>
+            </button>
+            <button className="tft-round-btn" style={{ background: 'var(--tomato)' }} onClick={() => swipeCurrent(true)} aria-label="Order it">
+              <span style={{ fontSize: 26, lineHeight: 1 }}>❤️</span>
+            </button>
+          </div>
+        </>
+      )}
 
-    ReactDOM.render(<TableForTwo />, document.getElementById('root'));
-  </script>
+      {showMatches ? (
+        <MatchesSheet matches={matches} mode={mode} onClose={() => setShowMatches(false)} onSpin={() => { setShowMatches(false); setShowWheel(true); }} />
+      ) : null}
+      {celebration ? (
+        <CelebrationOverlay meal={celebration} onDismiss={() => setCelebration(null)} onSpin={() => { setCelebration(null); setShowWheel(true); }} />
+      ) : null}
+      {showWheel ? <WheelScreen matches={matches} onClose={() => setShowWheel(false)} /> : null}
+    </div>
+  );
+}
+
+// ==================== TOP LEVEL ====================
+function TableForTwo() {
+  const [screen, setScreen] = useState('welcome');
+  const [mode, setMode] = useState('multiplayer');
+  const [role, setRole] = useState(null);
+  const [code, setCode] = useState(null);
+  const [category, setCategory] = useState('Dinner');
+  const [hasGuest, setHasGuest] = useState(false);
+  const [deck, setDeck] = useState([]);
+  const [ownSwipes, setOwnSwipes] = useState({});
+  const [partnerSwipes, setPartnerSwipes] = useState({});
+  const [joinError, setJoinError] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [connecting, setConnecting] = useState(false);
+
+  const matches = mode === 'solo'
+    ? allMeals().filter((m) => ownSwipes[m.id] === true)
+    : allMeals().filter((m) => ownSwipes[m.id] === true && partnerSwipes[m.id] === true);
+
+  // Real-time listeners via Firestore (replaces the old polling approach).
+  useEffect(() => {
+    if (!code || !role || !window.fbDb) return;
+    const metaUnsub = window.fbDb.collection('sessions').doc(code).onSnapshot(
+      (snap) => { if (snap.exists) setHasGuest(!!snap.data().hasGuest); },
+      (err) => console.error('meta listener error', err)
+    );
+    const otherRole = role === 'host' ? 'guest' : 'host';
+    const swipesUnsub = window.fbDb.collection('sessions').doc(code).collection('swipes').doc(otherRole).onSnapshot(
+      (snap) => { if (snap.exists) setPartnerSwipes(snap.data().items || {}); },
+      (err) => console.error('swipes listener error', err)
+    );
+    return () => { metaUnsub(); swipesUnsub(); };
+  }, [code, role]);
+
+  useEffect(() => {
+    if (role === 'host' && hasGuest && screen === 'waiting') setScreen('swipe');
+  }, [hasGuest, role, screen]);
+
+  const persistOwnSwipe = async (updated) => {
+    if (!code || !role || !window.fbDb) return;
+    try {
+      await window.fbDb.collection('sessions').doc(code).collection('swipes').doc(role).set({ items: updated });
+    } catch (e) { console.error('persistOwnSwipe failed', e); }
+  };
+
+  const handleCreate = async (selectedCategory) => {
+    setConnecting(true);
+    setCreateError('');
+    if (!window.fbDb) {
+      setCreateError('Multiplayer needs Firebase configured in index.html first. Try Solo mode for now.');
+      setConnecting(false);
+      return;
+    }
+    const newCode = generateCode();
+    try {
+      const stableDeck = getStableShuffledDeck(selectedCategory);
+      await window.fbDb.collection('sessions').doc(newCode).set({
+        category: selectedCategory, hasGuest: false, deck: stableDeck, createdAt: Date.now(),
+      });
+      setMode('multiplayer');
+      setCode(newCode);
+      setRole('host');
+      setCategory(selectedCategory);
+      setDeck(stableDeck.map((m) => ({ ...m, category: selectedCategory })));
+      setOwnSwipes({});
+      setPartnerSwipes({});
+      setScreen('waiting');
+    } catch (e) {
+      setCreateError("Couldn't open a ticket — check your Firebase setup and connection.");
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleJoin = async (rawCode) => {
+    const upper = rawCode.trim().toUpperCase();
+    if (!upper) return;
+    setConnecting(true);
+    setJoinError('');
+    if (!window.fbDb) {
+      setJoinError('Multiplayer needs Firebase configured in index.html first.');
+      setConnecting(false);
+      return;
+    }
+    try {
+      const ref = window.fbDb.collection('sessions').doc(upper);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        setJoinError("We couldn't find that ticket. Double check the code.");
+        setConnecting(false);
+        return;
+      }
+      const meta = snap.data();
+      const sharedDeck = meta.deck || getStableShuffledDeck(meta.category);
+      await ref.set({ ...meta, hasGuest: true, deck: sharedDeck });
+      setMode('multiplayer');
+      setCode(upper);
+      setRole('guest');
+      setCategory(meta.category);
+      setDeck(sharedDeck.map((m) => ({ ...m, category: meta.category })));
+      setOwnSwipes({});
+      setPartnerSwipes({});
+      setScreen('swipe');
+    } catch (e) {
+      setJoinError("We couldn't find that ticket. Double check the code.");
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleStartSolo = (selectedCategory) => {
+    setMode('solo');
+    setRole(null);
+    setCode(null);
+    setCategory(selectedCategory);
+    const stableDeck = getStableShuffledDeck(selectedCategory);
+    setDeck(stableDeck.map((m) => ({ ...m, category: selectedCategory })));
+    setOwnSwipes({});
+    setPartnerSwipes({});
+    setScreen('swipe');
+  };
+
+  const handleLeave = () => {
+    setScreen('welcome');
+    setMode('multiplayer');
+    setRole(null);
+    setCode(null);
+    setDeck([]);
+    setOwnSwipes({});
+    setPartnerSwipes({});
+    setHasGuest(false);
+    setJoinError('');
+    setCreateError('');
+  };
+
+  return (
+    <div className="tft-root">
+      <GlobalStyles />
+      <div className="w-full max-w-md mx-auto flex flex-col flex-1">
+        {screen === 'welcome' && (
+          <WelcomeScreen
+            onStart={() => { setMode('multiplayer'); setScreen('create'); }}
+            onJoin={() => setScreen('join')}
+            onSolo={() => { setMode('solo'); setScreen('create'); }}
+          />
+        )}
+        {screen === 'create' && (
+          <CreateScreen
+            onBack={() => setScreen('welcome')}
+            onConfirm={mode === 'solo' ? handleStartSolo : handleCreate}
+            confirmLabel={mode === 'solo' ? 'Start Swiping' : 'Create Ticket'}
+            connecting={mode === 'solo' ? false : connecting}
+            error={mode === 'solo' ? '' : createError}
+          />
+        )}
+        {screen === 'join' && (
+          <JoinScreen onBack={() => setScreen('welcome')} onJoin={handleJoin} error={joinError} connecting={connecting} />
+        )}
+        {screen === 'waiting' && <WaitingScreen code={code} onLeave={handleLeave} />}
+        {screen === 'swipe' && (
+          <SwipeScreen
+            mode={mode}
+            category={category}
+            deck={deck}
+            setDeck={setDeck}
+            ownSwipes={ownSwipes}
+            setOwnSwipes={setOwnSwipes}
+            onPersistSwipe={persistOwnSwipe}
+            matches={matches}
+            onLeave={handleLeave}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <ErrorBoundary>
+    <TableForTwo />
+  </ErrorBoundary>
+);
+</script>
 </body>
 </html>
