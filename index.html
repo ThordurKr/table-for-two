@@ -10,10 +10,13 @@
   <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide-react@0.468.0/dist/umd/lucide-react.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; touch-action: manipulation; }
     html, body, #root { width: 100%; height: 100%; }
   </style>
 </head>
@@ -21,7 +24,7 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
-    const { Heart, X, Share2, ArrowLeft } = window.lucide;
+    const { Heart, X, Share2, ArrowLeft } = window.LucideReact;
 
     // === DATA ===
     const CATEGORY_META = {
@@ -108,6 +111,53 @@
     function generateCode() {
       const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
       return Array.from({ length: 5 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
+    }
+
+
+    // === FIREBASE ===
+    // Replace these values with the Firebase Web App config from:
+    // Firebase Console -> Project settings -> Your apps -> Web app.
+    const FIREBASE_CONFIG = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    let db = null;
+    let auth = null;
+    let firebaseReady = false;
+    let currentUid = null;
+
+    async function initFirebase() {
+      if (!window.firebase) throw new Error('Firebase SDK did not load.');
+      if (FIREBASE_CONFIG.apiKey.startsWith('YOUR_')) {
+        throw new Error('Firebase is not configured yet. Add your Firebase Web App config to index.html.');
+      }
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      auth = firebase.auth();
+
+      if (!auth.currentUser) {
+        await auth.signInAnonymously();
+      }
+      currentUid = auth.currentUser && auth.currentUser.uid;
+      if (!currentUid) throw new Error('Could not create an anonymous Firebase session.');
+      firebaseReady = true;
+    }
+
+    function normalizeTicket(data) {
+      return {
+        code: data.code,
+        category: data.category,
+        hostSwipes: data.hostSwipes || {},
+        guestSwipes: data.guestSwipes || {},
+        joined: !!data.joined,
+        hostUid: data.hostUid || null,
+        guestUid: data.guestUid || null
+      };
     }
 
     // === COMPONENTS ===
@@ -371,8 +421,57 @@
       const [deck, setDeck] = useState([]);
       const [ownSwipes, setOwnSwipes] = useState({});
       const [partnerSwipes, setPartnerSwipes] = useState({});
+      const [ticketCode, setTicketCode] = useState('');
+      const [ticketRole, setTicketRole] = useState(null);
+      const [ticketError, setTicketError] = useState('');
+      const [firebaseError, setFirebaseError] = useState('');
+      const unsubscribeRef = useRef(null);
 
-      const matches = mode === 'solo' ? allMeals().filter((m) => ownSwipes[m.id] === true) : allMeals().filter((m) => ownSwipes[m.id] === true && partnerSwipes[m.id] === true);
+      useEffect(() => {
+        let cancelled = false;
+        (async () => {
+          try {
+            await initFirebase();
+            if (cancelled) return;
+          } catch (e) {
+            if (!cancelled) setFirebaseError(e.message);
+          }
+        })();
+
+        return () => {
+          cancelled = true;
+          if (unsubscribeRef.current) unsubscribeRef.current();
+        };
+      }, []);
+
+      const matches = mode === 'solo'
+        ? allMeals().filter((m) => ownSwipes[m.id] === true)
+        : allMeals().filter((m) => ownSwipes[m.id] === true && partnerSwipes[m.id] === true);
+
+      const startRealtime = (code, role) => {
+        if (!db) return;
+        if (unsubscribeRef.current) unsubscribeRef.current();
+        unsubscribeRef.current = db.collection('tickets').doc(code).onSnapshot((snap) => {
+          if (!snap.exists) {
+            setTicketError('This ticket no longer exists.');
+            return;
+          }
+          const t = normalizeTicket(snap.data());
+          setCategory(t.category);
+          if (role === 'host') {
+            setOwnSwipes(t.hostSwipes);
+            setPartnerSwipes(t.guestSwipes);
+            if (t.joined && screen === 'waiting') {
+              const stableDeck = getStableShuffledDeck(t.category);
+              setDeck(stableDeck.map((m) => ({ ...m, category: t.category })));
+              setScreen('swipe');
+            }
+          } else {
+            setOwnSwipes(t.guestSwipes);
+            setPartnerSwipes(t.hostSwipes);
+          }
+        }, (err) => setTicketError(err.message));
+      };
 
       const handleStartSolo = (selectedCategory) => {
         setMode('solo');
@@ -384,22 +483,183 @@
         setScreen('swipe');
       };
 
-      const handleLeave = () => {
+      const handleCreateTicket = async (selectedCategory) => {
+        setTicketError('');
+        if (!db || !currentUid) {
+          setTicketError('Firebase is still connecting. Please wait a moment and try again.');
+          return;
+        }
+        try {
+          let code = generateCode();
+          for (let i = 0; i < 10; i++) {
+            const ref = db.collection('tickets').doc(code);
+            const snap = await ref.get();
+            if (!snap.exists) break;
+            code = generateCode();
+          }
+          await db.collection('tickets').doc(code).set({
+            code,
+            category: selectedCategory,
+            hostSwipes: {},
+            guestSwipes: {},
+            joined: false,
+            hostUid: currentUid,
+            guestUid: null,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          setMode('multiplayer');
+          setCategory(selectedCategory);
+          setTicketCode(code);
+          setTicketRole('host');
+          setScreen('waiting');
+          startRealtime(code, 'host');
+        } catch (e) {
+          setTicketError(e.message || 'Could not create the ticket.');
+        }
+      };
+
+      const handleJoinTicket = async (rawCode) => {
+        setTicketError('');
+        if (!db || !currentUid) {
+          setTicketError('Firebase is still connecting. Please wait a moment and try again.');
+          return;
+        }
+        const code = rawCode.trim().toUpperCase();
+        if (code.length !== 5) {
+          setTicketError('Enter the 5-character ticket code.');
+          return;
+        }
+        try {
+          const ref = db.collection('tickets').doc(code);
+          let t;
+
+          await db.runTransaction(async (tx) => {
+            const snap = await tx.get(ref);
+            if (!snap.exists) throw new Error('Ticket not found. Check the code and try again.');
+            const current = normalizeTicket(snap.data());
+            if (current.joined || current.guestUid) {
+              throw new Error('That ticket already has two people.');
+            }
+            tx.update(ref, { joined: true, guestUid: currentUid });
+            t = current;
+          });
+
+          setMode('multiplayer');
+          setCategory(t.category);
+          setTicketCode(code);
+          setTicketRole('guest');
+          const stableDeck = getStableShuffledDeck(t.category);
+          setDeck(stableDeck.map((m) => ({ ...m, category: t.category })));
+          setOwnSwipes(t.guestSwipes);
+          setPartnerSwipes(t.hostSwipes);
+          setScreen('swipe');
+          startRealtime(code, 'guest');
+        } catch (e) {
+          setTicketError(e.message || 'Could not join the ticket.');
+        }
+      };
+
+      const saveSwipe = async (mealId, liked) => {
+        if (!db || !ticketCode || !ticketRole) return;
+        const field = ticketRole === 'host' ? 'hostSwipes' : 'guestSwipes';
+        try {
+          await db.collection('tickets').doc(ticketCode).set({
+            [field]: { ...ownSwipes, [mealId]: liked }
+          }, { merge: true });
+        } catch (e) {
+          setTicketError(e.message || 'Could not save your choice.');
+        }
+      };
+
+      const handleLeave = async () => {
+        if (unsubscribeRef.current) {
+          unsubscribeRef.current();
+          unsubscribeRef.current = null;
+        }
+        if (db && ticketCode && ticketRole === 'host') {
+          try {
+            await db.collection('tickets').doc(ticketCode).delete();
+          } catch (e) {}
+        } else if (db && ticketCode && ticketRole === 'guest' && currentUid) {
+          try {
+            await db.collection('tickets').doc(ticketCode).update({
+              joined: false,
+              guestUid: null,
+              guestSwipes: {}
+            });
+          } catch (e) {}
+        }
         setScreen('welcome');
         setMode('multiplayer');
         setDeck([]);
         setOwnSwipes({});
         setPartnerSwipes({});
+        setTicketCode('');
+        setTicketRole(null);
+        setTicketError('');
       };
+
+      const firebaseBanner = firebaseError && (
+        <div style={{
+          margin: '0.75rem 1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem',
+          background: '#fff1ed', border: '1px solid rgba(193,68,45,0.25)',
+          color: 'var(--tomato)', fontSize: '0.8rem', lineHeight: 1.4
+        }}>
+          {firebaseError}
+        </div>
+      );
 
       return (
         <div className="tft-root">
           <GlobalStyles />
           <div style={{ width: '100%', maxWidth: '28rem', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
-            {screen === 'welcome' && <WelcomeScreen onStart={() => { setMode('multiplayer'); setScreen('create'); }} onJoin={() => setScreen('join')} onSolo={() => { setMode('solo'); setScreen('create'); }} />}
-            {screen === 'create' && <CreateScreen onBack={() => setScreen('welcome')} onConfirm={mode === 'solo' ? handleStartSolo : (() => {})} confirmLabel={mode === 'solo' ? 'Start Swiping' : 'Create Ticket'} />}
-            {screen === 'join' && <JoinScreen onBack={() => setScreen('welcome')} onJoin={() => {}} error="" />}
-            {screen === 'swipe' && <SwipeScreen mode={mode} category={category} deck={deck} setDeck={setDeck} ownSwipes={ownSwipes} setOwnSwipes={setOwnSwipes} matches={matches} onLeave={handleLeave} />}
+            {firebaseBanner}
+
+            {screen === 'welcome' &&
+              <WelcomeScreen
+                onStart={() => { setMode('multiplayer'); setScreen('create'); setTicketError(''); }}
+                onJoin={() => { setScreen('join'); setTicketError(''); }}
+                onSolo={() => { setMode('solo'); setScreen('create'); setTicketError(''); }}
+              />
+            }
+
+            {screen === 'create' &&
+              <>
+                <CreateScreen
+                  onBack={() => setScreen('welcome')}
+                  onConfirm={mode === 'solo' ? handleStartSolo : handleCreateTicket}
+                  confirmLabel={mode === 'solo' ? 'Start Swiping' : 'Create Ticket'}
+                />
+                {ticketError && <p style={{ padding: '0 1.5rem', color: 'var(--tomato)', textAlign: 'center', fontSize: '0.85rem' }}>{ticketError}</p>}
+              </>
+            }
+
+            {screen === 'waiting' &&
+              <WaitingScreen code={ticketCode} onLeave={handleLeave} />
+            }
+
+            {screen === 'join' &&
+              <JoinScreen onBack={() => setScreen('welcome')} onJoin={handleJoinTicket} error={ticketError} />
+            }
+
+            {screen === 'swipe' &&
+              <SwipeScreen
+                mode={mode}
+                category={category}
+                deck={deck}
+                setDeck={setDeck}
+                ownSwipes={ownSwipes}
+                setOwnSwipes={(next) => {
+                  setOwnSwipes(next);
+                  const previousIds = Object.keys(ownSwipes);
+                  const nextIds = Object.keys(next);
+                  const changedId = nextIds.find((id) => !previousIds.includes(id) || ownSwipes[id] !== next[id]);
+                  if (changedId) saveSwipe(changedId, next[changedId]);
+                }}
+                matches={matches}
+                onLeave={handleLeave}
+              />
+            }
           </div>
         </div>
       );
