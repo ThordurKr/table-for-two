@@ -140,7 +140,6 @@ const MEAL_DATA = {
     { id: 'dessert-06', name: 'Cheesecake', emoji: '🍰', description: 'Smooth and indulgent.' },
     { id: 'dessert-07', name: 'Carrot Cake', emoji: '🥕', description: 'With cream cheese frosting.' },
     { id: 'dessert-08', name: 'Cream Cake', emoji: '🍰', description: 'Layers of cream and cake.' },
-    { id: 'dessert-09', name: 'You 😊', emoji: '❤️', description: 'The best dessert of all.' },
   ],
   Nammi: [
     { id: 'nammi-01', name: 'Hagkaup NammiBar', emoji: '🍬', description: 'Pick-and-mix candy by weight.' },
@@ -431,10 +430,11 @@ function CelebrationOverlay({ meal, onDismiss, onSpin }) {
   );
 }
 
-function WheelScreen({ matches, onClose }) {
+function WheelScreen({ matches, onClose, spinToken, winnerId, onRequestSpin }) {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [winner, setWinner] = useState(null);
+  const lastPlayedToken = useRef(null);
   const size = 280;
   const colors = ['var(--tomato)', 'var(--mustard)', 'var(--plum)', '#4A4238'];
   const n = Math.max(matches.length, 1);
@@ -443,11 +443,15 @@ function WheelScreen({ matches, onClose }) {
   const segAngle = 360 / n;
   const gradientStops = idxs.map((ci, i) => `${colors[ci]} ${i * segAngle}deg ${(i + 1) * segAngle}deg`).join(', ');
 
-  const spin = () => {
-    if (spinning || matches.length === 0) return;
+  // Plays the spin animation for whatever (spinToken, winnerId) we've been
+  // handed — same code path whether we started the spin ourselves or our
+  // partner did, so both screens always animate toward the same result.
+  useEffect(() => {
+    if (!spinToken || spinToken === lastPlayedToken.current) return;
+    lastPlayedToken.current = spinToken;
+    const winIndex = Math.max(0, matches.findIndex((m) => m.id === winnerId));
     setWinner(null);
     setSpinning(true);
-    const winIndex = Math.floor(Math.random() * matches.length);
     const sliceCenter = winIndex * segAngle + segAngle / 2;
     const jitter = (Math.random() - 0.5) * segAngle * 0.5;
     const extraSpins = 5 + Math.floor(Math.random() * 3);
@@ -457,8 +461,8 @@ function WheelScreen({ matches, onClose }) {
       const delta = ((targetMod - prevMod) % 360 + 360) % 360;
       return prev + delta + extraSpins * 360;
     });
-    setTimeout(() => { setSpinning(false); setWinner(matches[winIndex]); }, 4200);
-  };
+    setTimeout(() => { setSpinning(false); setWinner(matches[winIndex] || null); }, 4200);
+  }, [spinToken, winnerId]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8" style={{ background: 'rgba(43,36,29,0.92)' }}>
@@ -482,7 +486,11 @@ function WheelScreen({ matches, onClose }) {
             </div>
             <div style={{ position: 'absolute', top: '50%', left: '50%', width: 44, height: 44, marginLeft: -22, marginTop: -22, borderRadius: '50%', background: 'var(--ink)', border: '4px solid var(--card)' }} />
           </div>
-          <button className="tft-btn tft-btn-primary py-3.5 px-10 text-base mt-10" onClick={spin} disabled={spinning}>{spinning ? 'Spinning…' : 'Spin the Wheel'}</button>
+          {!spinToken ? (
+            <button className="tft-btn tft-btn-primary py-3.5 px-10 text-base mt-10" onClick={onRequestSpin}>Spin the Wheel</button>
+          ) : spinning ? (
+            <p className="text-sm mt-10" style={{ color: 'rgba(251,243,228,0.8)' }}>Spinning…</p>
+          ) : null}
         </>
       )}
       {winner ? (
@@ -493,7 +501,7 @@ function WheelScreen({ matches, onClose }) {
             <p className="tft-display text-2xl font-semibold mb-2" style={{ color: '#FFFDF9' }}>{winner.name}</p>
             <p className="text-sm mb-8" style={{ color: 'rgba(255,253,249,0.75)', maxWidth: '28ch' }}>{winner.description}</p>
             <div className="flex gap-3 justify-center">
-              <button className="tft-btn tft-btn-outline py-3 px-6 text-base" style={{ borderColor: '#FBF3E4', color: '#FBF3E4' }} onClick={() => setWinner(null)}>Spin Again</button>
+              <button className="tft-btn tft-btn-outline py-3 px-6 text-base" style={{ borderColor: '#FBF3E4', color: '#FBF3E4' }} onClick={onRequestSpin}>Spin Again</button>
               <button className="tft-btn tft-btn-primary py-3 px-6 text-base" onClick={onClose}>Done</button>
             </div>
           </div>
@@ -503,10 +511,9 @@ function WheelScreen({ matches, onClose }) {
   );
 }
 
-function SwipeScreen({ mode, category, deck, setDeck, ownSwipes, setOwnSwipes, onPersistSwipe, matches, onLeave }) {
+function SwipeScreen({ mode, category, deck, setDeck, ownSwipes, setOwnSwipes, onPersistSwipe, matches, onLeave, showWheel, wheelSpinToken, wheelWinnerId, onTriggerSpin, onCloseWheel }) {
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
   const [showMatches, setShowMatches] = useState(false);
-  const [showWheel, setShowWheel] = useState(false);
   const [celebration, setCelebration] = useState(null);
   const draggingRef = useRef(false);
   const startRef = useRef({ x: 0, y: 0 });
@@ -592,12 +599,14 @@ function SwipeScreen({ mode, category, deck, setDeck, ownSwipes, setOwnSwipes, o
       )}
 
       {showMatches ? (
-        <MatchesSheet matches={matches} mode={mode} onClose={() => setShowMatches(false)} onSpin={() => { setShowMatches(false); setShowWheel(true); }} />
+        <MatchesSheet matches={matches} mode={mode} onClose={() => setShowMatches(false)} onSpin={() => { setShowMatches(false); onTriggerSpin(); }} />
       ) : null}
       {celebration ? (
-        <CelebrationOverlay meal={celebration} onDismiss={() => setCelebration(null)} onSpin={() => { setCelebration(null); setShowWheel(true); }} />
+        <CelebrationOverlay meal={celebration} onDismiss={() => setCelebration(null)} onSpin={() => { setCelebration(null); onTriggerSpin(); }} />
       ) : null}
-      {showWheel ? <WheelScreen matches={matches} onClose={() => setShowWheel(false)} /> : null}
+      {showWheel ? (
+        <WheelScreen matches={matches} onClose={onCloseWheel} spinToken={wheelSpinToken} winnerId={wheelWinnerId} onRequestSpin={onTriggerSpin} />
+      ) : null}
     </div>
   );
 }
@@ -616,6 +625,10 @@ function TableForTwo() {
   const [joinError, setJoinError] = useState('');
   const [createError, setCreateError] = useState('');
   const [connecting, setConnecting] = useState(false);
+  const [showWheel, setShowWheel] = useState(false);
+  const [wheelSpinToken, setWheelSpinToken] = useState(null);
+  const [wheelWinnerId, setWheelWinnerId] = useState(null);
+  const lastSeenSpinToken = useRef(null);
 
   const matches = mode === 'solo'
     ? allMeals().filter((m) => ownSwipes[m.id] === true)
@@ -625,7 +638,19 @@ function TableForTwo() {
   useEffect(() => {
     if (!code || !role || !window.fbDb) return;
     const metaUnsub = window.fbDb.collection('sessions').doc(code).onSnapshot(
-      (snap) => { if (snap.exists) setHasGuest(!!snap.data().hasGuest); },
+      (snap) => {
+        if (!snap.exists) return;
+        const data = snap.data();
+        setHasGuest(!!data.hasGuest);
+        // A partner's wheel spin arrives here too — same spinToken drives
+        // the animation on both screens, whoever started it.
+        if (data.wheel && data.wheel.spinToken && data.wheel.spinToken !== lastSeenSpinToken.current) {
+          lastSeenSpinToken.current = data.wheel.spinToken;
+          setWheelWinnerId(data.wheel.winnerId);
+          setWheelSpinToken(data.wheel.spinToken);
+          setShowWheel(true);
+        }
+      },
       (err) => console.error('meta listener error', err)
     );
     const otherRole = role === 'host' ? 'guest' : 'host';
@@ -645,6 +670,24 @@ function TableForTwo() {
     try {
       await window.fbDb.collection('sessions').doc(code).collection('swipes').doc(role).set({ items: updated });
     } catch (e) { console.error('persistOwnSwipe failed', e); }
+  };
+
+  // Picks a winner and, in multiplayer, syncs it to Firestore so the
+  // partner's screen animates to the exact same result at (almost) the
+  // same moment. Works with zero backend in solo mode.
+  const handleTriggerSpin = () => {
+    if (matches.length === 0) return;
+    const idx = Math.floor(Math.random() * matches.length);
+    const winnerId = matches[idx].id;
+    const token = Date.now();
+    lastSeenSpinToken.current = token;
+    setWheelWinnerId(winnerId);
+    setWheelSpinToken(token);
+    setShowWheel(true);
+    if (mode === 'multiplayer' && code && window.fbDb) {
+      window.fbDb.collection('sessions').doc(code).set({ wheel: { winnerId, spinToken: token } }, { merge: true })
+        .catch((e) => console.error('wheel sync failed', e));
+    }
   };
 
   const handleCreate = async (selectedCategory) => {
@@ -735,6 +778,10 @@ function TableForTwo() {
     setHasGuest(false);
     setJoinError('');
     setCreateError('');
+    setShowWheel(false);
+    setWheelSpinToken(null);
+    setWheelWinnerId(null);
+    lastSeenSpinToken.current = null;
   };
 
   return (
@@ -772,6 +819,11 @@ function TableForTwo() {
             onPersistSwipe={persistOwnSwipe}
             matches={matches}
             onLeave={handleLeave}
+            showWheel={showWheel}
+            wheelSpinToken={wheelSpinToken}
+            wheelWinnerId={wheelWinnerId}
+            onTriggerSpin={handleTriggerSpin}
+            onCloseWheel={() => setShowWheel(false)}
           />
         )}
       </div>
